@@ -28,13 +28,20 @@ const SPRITES: &'static [u8] = &[
     /*F*/ 0xF0, 0x80, 0xF0, 0x80, 0x80,
 ];
 
+const MEMORY_SIZE: usize = 0x1000;
+const V_COUNT: usize =  0x10;
+const STACK_SIZE: usize =  0x10;
+const DISPLAY_WIDTH: usize = 64;
+const DISPLAY_HEIGHT: usize = 32;
+const KEY_COUNT: usize = 16;
+
 #[allow(non_snake_case)]
 pub struct Chip8 {
-    memory: [u8; 0x1000],
-    V: [u8; 0x10],
-    stack: [u16; 0x10],
-    display: [u8; 8 * 4],
-    keys: [bool; 16],
+    memory: [u8; MEMORY_SIZE],
+    V: [u8; V_COUNT],
+    stack: [u16; STACK_SIZE],
+    display: [bool; DISPLAY_WIDTH * DISPLAY_HEIGHT],
+    keys: [bool; KEY_COUNT],
     I: u16,
     pc: u16,
     sp: u8,
@@ -46,15 +53,15 @@ pub struct Chip8 {
 
 impl Chip8 {
     pub fn new() -> Chip8 {
-        let mut memory = [0; 0x1000];
+        let mut memory = [0; MEMORY_SIZE];
         memory[..SPRITES.len()].clone_from_slice(&SPRITES);
 
         Chip8 {
             memory,
-            V: [0; 0x10],
-            stack: [0; 0x10],
-            display: [0; 8 * 4],
-            keys: [false; 16],
+            V: [0; V_COUNT],
+            stack: [0; STACK_SIZE],
+            display: [false; DISPLAY_WIDTH * DISPLAY_HEIGHT],
+            keys: [false; KEY_COUNT],
             I: 0,
             pc: 0,
             sp: 0,
@@ -111,7 +118,7 @@ impl Chip8 {
 
         match (o, kk, n) {
             // 0x00E0 - CLS
-            (0, 0xE0, _) => self.display.fill(0),
+            (0, 0xE0, _) => self.display.fill(false),
             // 0x00EE - RET
             (0, 0xEE, _) => {
                 self.pc = self.stack[self.sp as usize];
@@ -210,7 +217,23 @@ impl Chip8 {
             }
             // Dxyn - DRW Vx, Vy, nibble
             (0xD, _, _) => {
-                //  todo!()
+                let x = Vx!() as u16;
+                let y = Vy!() as u16;
+                V!(0xF) = 0;
+
+                for i in 0..n {
+                    let byte = self.memory[self.I as usize + n as usize];
+                    for j in 0..8 {
+                        let bit = ((byte >> j) & 1) != 0;
+                        let index = (64 * ((y + n) % 32) + (x + i) % 64) as usize;
+
+                        if self.display[index] && bit {
+                            V!(0xF) = 1;
+                        }
+
+                        self.display[index] ^= bit;
+                    }
+                }
             }
             // Ex9E - SKP Vx
             (0xE, 0x9E, _) => {
