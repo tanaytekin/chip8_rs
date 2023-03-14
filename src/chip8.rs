@@ -5,10 +5,6 @@ use std::path::Path;
 use rand::distributions::{Distribution, Uniform};
 use rand::rngs::ThreadRng;
 
-mod error;
-use error::Error;
-use error::Result;
-
 const SPRITES: &'static [u8] = &[
     /*0*/ 0xF0, 0x90, 0x90, 0x90, 0xF0,
     /*1*/ 0x20, 0x60, 0x20, 0x20, 0x70,
@@ -31,8 +27,8 @@ const SPRITES: &'static [u8] = &[
 const MEMORY_SIZE: usize = 0x1000;
 const V_COUNT: usize =  0x10;
 const STACK_SIZE: usize =  0x10;
-const DISPLAY_WIDTH: usize = 64;
-const DISPLAY_HEIGHT: usize = 32;
+pub const DISPLAY_WIDTH: usize = 64;
+pub const DISPLAY_HEIGHT: usize = 32;
 const KEY_COUNT: usize = 16;
 
 #[allow(non_snake_case)]
@@ -40,8 +36,8 @@ pub struct Chip8 {
     memory: [u8; MEMORY_SIZE],
     V: [u8; V_COUNT],
     stack: [u16; STACK_SIZE],
-    display: [bool; DISPLAY_WIDTH * DISPLAY_HEIGHT],
-    keys: [bool; KEY_COUNT],
+    pub display: [bool; DISPLAY_WIDTH * DISPLAY_HEIGHT],
+    pub keys: [bool; KEY_COUNT],
     I: u16,
     pc: u16,
     sp: u8,
@@ -49,6 +45,7 @@ pub struct Chip8 {
     ST: u8,
     rng: ThreadRng,
     rand_dist: Uniform<u8>,
+    tmp: bool,
 }
 
 impl Chip8 {
@@ -69,6 +66,7 @@ impl Chip8 {
             ST: 0,
             rng: rand::thread_rng(),
             rand_dist: Uniform::from(0..0xFF),
+            tmp: false,
         }
     }
 
@@ -78,12 +76,15 @@ impl Chip8 {
         if romsize > (0xFFF - 0x200) {
             return Err(Error::ROMIsTooBig(romsize));
         }
-        file.read_exact(&mut self.memory[0x200..romsize as usize])?;
+        file.read_exact(&mut self.memory[0x200..0x200 + romsize as usize])?;
         self.pc = 0x200;
         Ok(())
     }
 
     pub fn cycle(&mut self) {
+        if self.tmp {
+           return;
+        }
         let opcode: u16 = ((self.memory[self.pc as usize] as u16) << 8)
             | self.memory[(self.pc + 1) as usize] as u16;
         self.pc += 2;
@@ -114,7 +115,7 @@ impl Chip8 {
             }
         }
 
-        println!("{:#02x}", opcode);
+        //println!("opcode: {:#02X}", opcode);
 
         match (o, kk, n) {
             // 0x00E0 - CLS
@@ -151,7 +152,9 @@ impl Chip8 {
                 }
             }
             // 6xkk - LD Vx, byte
-            (6, _, _) => Vx!() = kk,
+            (6, _, _) => {
+                Vx!() = kk;
+            },
             // 7xkk - ADD Vx, byte
             (7, _, _) => Vx!() += kk,
             // 8xy0 - LD Vx, Vy
@@ -165,7 +168,7 @@ impl Chip8 {
             // 8xy4 - ADD Vx, Vy
             (8, _, 4) => {
                 let sum = Vx!() as u16 + Vy!() as u16;
-                if sum > 0x10 {
+                if sum > 0xFF {
                     V!(0xF) = 1;
                 } else {
                     V!(0xF) = 0;
@@ -174,7 +177,7 @@ impl Chip8 {
             }
             // 8xy5 - SUB Vx, Vy
             (8, _, 5) => {
-                if Vx!() > Vy!() {
+                if Vx!() >= Vy!() {
                     V!(0xF) = 1;
                 } else {
                     V!(0xF) = 0;
@@ -188,12 +191,12 @@ impl Chip8 {
             }
             // 8xy7 - SUBN Vx, Vy
             (8, _, 7) => {
-                if Vy!() > Vx!() {
+                if Vy!() >= Vx!() {
                     V!(0xF) = 1;
                 } else {
                     V!(0xF) = 0;
                 }
-                Vx!() -= Vy!();
+                Vx!() = Vy!() - Vx!();
             }
             // 8xyE - SHL Vx {, Vy}
             (8, _, 0xE) => {
@@ -207,7 +210,9 @@ impl Chip8 {
                 }
             }
             // Annn - LD I, addr
-            (0xA, _, _) => self.I = nnn,
+            (0xA, _, _) => {
+                self.I = nnn;
+            },
             // Bnnn - JP V0, addr
             (0xB, _, _) => self.pc = nnn + V!(0) as u16,
             // Cxkk - RND Vx, byte
@@ -222,15 +227,13 @@ impl Chip8 {
                 V!(0xF) = 0;
 
                 for i in 0..n {
-                    let byte = self.memory[self.I as usize + n as usize];
-                    for j in 0..8 {
-                        let bit = ((byte >> j) & 1) != 0;
-                        let index = (64 * ((y + n) % 32) + (x + i) % 64) as usize;
-
+                    let byte = self.memory[self.I as usize + i as usize];
+                    for j in (0..8).rev() {
+                        let bit = ((byte>>j)&1) != 0;
+                        let index = ((x + (7 - j)) % (DISPLAY_WIDTH as u16) + (DISPLAY_WIDTH as u16) * ((y + i) % (DISPLAY_HEIGHT as u16))) as usize;
                         if self.display[index] && bit {
                             V!(0xF) = 1;
                         }
-
                         self.display[index] ^= bit;
                     }
                 }
@@ -276,18 +279,38 @@ impl Chip8 {
             }
             // Fx55 - LD [I], Vx
             (0xF, 0x55, _) => {
-                for offset in 0..x as usize {
+                for offset in 0..=x as usize {
                     self.memory[self.I as usize + offset] = self.V[offset];
                 }
             }
             // Fx65 - LD Vx, [I]
             (0xF, 0x65, _) => {
-                for offset in 0..x as usize {
-                    self.V[offset] = self.memory[self.I as usize + offset];
+                for offset in 0..=x as usize {
+                    V!(offset) = self.memory[self.I as usize + offset];
                 }
             }
 
-            _ => unimplemented!(),
+            _ => unimplemented!("Unrecoginized opcode: {opcode:#X}"),
         }
     }
+
+    pub fn timer(&mut self) {
+        if self.DT > 0 {
+            self.DT -= 1;
+        }
+        
+        if self.ST > 0 {
+            self.ST -= 1;
+        }
+    }
+}
+
+pub type Result<T> = std::result::Result<T, Error>;
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+    #[error("ROM file is too big: {0} bytes expected < 3583 bytes.")]
+    ROMIsTooBig(u64),
 }

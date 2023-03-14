@@ -6,5 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+glfw = "0.51.0"
 rand = "0.8.5"
 thiserror = "1.0"
+
+[build-dependencies]
+gl_generator = "0.14.0"

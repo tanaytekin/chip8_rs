@@ -1,7 +1,11 @@
+mod chip8;
+mod app;
+
+mod gl {
+    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+}
+
 fn main() {
-    let mut c8 = chip8_rs::Chip8::new();
-    c8.load("space.ch8").unwrap();
-    loop {
-        c8.cycle();
-    }
+    let mut app = app::App::new();
+    app.run();
 }
