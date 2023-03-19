@@ -29,7 +29,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "chip8_rs"
+name = "chip8_opengl"
 version = "0.1.0"
 dependencies = [
  "chip8",
@@ -191,9 +191,9 @@ checksum = "4f851a03551ceefd30132e447f07f96cb7011d6b658374f3aed847333adb5559"
 
 [[package]]
 name = "syn"
-version = "2.0.0"
+version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cff13bb1732bccfe3b246f3fdb09edfd51c01d6f5299b7ccd9457c2e4e37774"
+checksum = "55ee2415bee46ba26eac9cd8e52966995c46bf0e842b6304eb8fcf99826548ed"
 dependencies = [
  "proc-macro2",
  "quote",
