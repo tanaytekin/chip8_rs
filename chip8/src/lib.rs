@@ -6,27 +6,19 @@ use rand::distributions::{Distribution, Uniform};
 use rand::rngs::ThreadRng;
 
 const SPRITES: &'static [u8] = &[
-    /*0*/ 0xF0, 0x90, 0x90, 0x90, 0xF0,
-    /*1*/ 0x20, 0x60, 0x20, 0x20, 0x70,
-    /*2*/ 0xF0, 0x10, 0xF0, 0x80, 0xF0,
-    /*3*/ 0xF0, 0x10, 0xF0, 0x10, 0xF0,
-    /*4*/ 0x90, 0x90, 0xF0, 0x10, 0x10,
-    /*5*/ 0xF0, 0x80, 0xF0, 0x10, 0xF0,
-    /*6*/ 0xF0, 0x80, 0xF0, 0x90, 0xF0,
-    /*7*/ 0xF0, 0x10, 0x20, 0x40, 0x40,
-    /*8*/ 0xF0, 0x90, 0xF0, 0x90, 0xF0,
-    /*9*/ 0xF0, 0x90, 0xF0, 0x10, 0xF0,
-    /*A*/ 0xF0, 0x90, 0xF0, 0x90, 0x90,
-    /*B*/ 0xE0, 0x90, 0xE0, 0x90, 0xE0,
-    /*C*/ 0xF0, 0x80, 0x80, 0x80, 0xF0,
-    /*D*/ 0xE0, 0x90, 0x90, 0x90, 0xE0,
-    /*E*/ 0xF0, 0x80, 0xF0, 0x80, 0xF0,
-    /*F*/ 0xF0, 0x80, 0xF0, 0x80, 0x80,
+    /*0*/ 0xF0, 0x90, 0x90, 0x90, 0xF0, /*1*/ 0x20, 0x60, 0x20, 0x20, 0x70,
+    /*2*/ 0xF0, 0x10, 0xF0, 0x80, 0xF0, /*3*/ 0xF0, 0x10, 0xF0, 0x10, 0xF0,
+    /*4*/ 0x90, 0x90, 0xF0, 0x10, 0x10, /*5*/ 0xF0, 0x80, 0xF0, 0x10, 0xF0,
+    /*6*/ 0xF0, 0x80, 0xF0, 0x90, 0xF0, /*7*/ 0xF0, 0x10, 0x20, 0x40, 0x40,
+    /*8*/ 0xF0, 0x90, 0xF0, 0x90, 0xF0, /*9*/ 0xF0, 0x90, 0xF0, 0x10, 0xF0,
+    /*A*/ 0xF0, 0x90, 0xF0, 0x90, 0x90, /*B*/ 0xE0, 0x90, 0xE0, 0x90, 0xE0,
+    /*C*/ 0xF0, 0x80, 0x80, 0x80, 0xF0, /*D*/ 0xE0, 0x90, 0x90, 0x90, 0xE0,
+    /*E*/ 0xF0, 0x80, 0xF0, 0x80, 0xF0, /*F*/ 0xF0, 0x80, 0xF0, 0x80, 0x80,
 ];
 
 const MEMORY_SIZE: usize = 0x1000;
-const V_COUNT: usize =  0x10;
-const STACK_SIZE: usize =  0x10;
+const V_COUNT: usize = 0x10;
+const STACK_SIZE: usize = 0x10;
 pub const DISPLAY_WIDTH: usize = 64;
 pub const DISPLAY_HEIGHT: usize = 32;
 const KEY_COUNT: usize = 16;
@@ -83,7 +75,7 @@ impl Chip8 {
 
     pub fn cycle(&mut self) {
         if self.tmp {
-           return;
+            return;
         }
         let opcode: u16 = ((self.memory[self.pc as usize] as u16) << 8)
             | self.memory[(self.pc + 1) as usize] as u16;
@@ -96,23 +88,22 @@ impl Chip8 {
         let y = (opcode & 0x00F0) >> 4;
         let kk = (opcode & 0x00FF) as u8;
 
-
         macro_rules! V {
             ($offset:expr) => {
                 self.V[$offset as usize]
-            }
+            };
         }
 
         macro_rules! Vx {
             () => {
                 self.V[x as usize]
-            }
+            };
         }
 
         macro_rules! Vy {
             () => {
                 self.V[y as usize]
-            }
+            };
         }
 
         //println!("opcode: {:#02X}", opcode);
@@ -154,7 +145,7 @@ impl Chip8 {
             // 6xkk - LD Vx, byte
             (6, _, _) => {
                 Vx!() = kk;
-            },
+            }
             // 7xkk - ADD Vx, byte
             (7, _, _) => Vx!() += kk,
             // 8xy0 - LD Vx, Vy
@@ -212,7 +203,7 @@ impl Chip8 {
             // Annn - LD I, addr
             (0xA, _, _) => {
                 self.I = nnn;
-            },
+            }
             // Bnnn - JP V0, addr
             (0xB, _, _) => self.pc = nnn + V!(0) as u16,
             // Cxkk - RND Vx, byte
@@ -229,8 +220,10 @@ impl Chip8 {
                 for i in 0..n {
                     let byte = self.memory[self.I as usize + i as usize];
                     for j in (0..8).rev() {
-                        let bit = ((byte>>j)&1) != 0;
-                        let index = ((x + (7 - j)) % (DISPLAY_WIDTH as u16) + (DISPLAY_WIDTH as u16) * ((y + i) % (DISPLAY_HEIGHT as u16))) as usize;
+                        let bit = ((byte >> j) & 1) != 0;
+                        let index = ((x + (7 - j)) % (DISPLAY_WIDTH as u16)
+                            + (DISPLAY_WIDTH as u16) * ((y + i) % (DISPLAY_HEIGHT as u16)))
+                            as usize;
                         if self.display[index] && bit {
                             V!(0xF) = 1;
                         }
@@ -298,7 +291,7 @@ impl Chip8 {
         if self.DT > 0 {
             self.DT -= 1;
         }
-        
+
         if self.ST > 0 {
             self.ST -= 1;
         }

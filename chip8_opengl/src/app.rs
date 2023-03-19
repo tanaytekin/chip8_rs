@@ -1,11 +1,13 @@
-use std::sync::mpsc::Receiver;
 use std::ffi::CString;
-use std::time::{Instant, Duration};
+use std::sync::mpsc::Receiver;
 use std::thread::sleep;
+use std::time::{Duration, Instant};
 
-use glfw::{Glfw, Action, Context, Key, WindowEvent, WindowHint, OpenGlProfileHint, WindowMode, Window};
+use glfw::{
+    Action, Context, Glfw, Key, OpenGlProfileHint, Window, WindowEvent, WindowHint, WindowMode,
+};
 
-use chip8::{Chip8};
+use chip8::Chip8;
 
 use crate::gl;
 use crate::gl::types::*;
@@ -16,7 +18,6 @@ const TITLE: &'static str = "chip8_rs";
 
 const CHIP8_FREQ: f32 = 800.0;
 const TIMER_FREQ: f32 = 60.0;
-
 
 pub struct App {
     window: Window,
@@ -51,7 +52,6 @@ impl App {
 
         gl::load_with(|s| glfw.get_proc_address_raw(s));
 
-
         let mut vao = 0;
         let mut vbo = 0;
 
@@ -73,13 +73,12 @@ impl App {
             frame_count: 0,
         }
     }
-    
+
     pub fn run(&mut self) {
         let path = std::env::args().nth(1).expect("No ROM path is provided.");
         self.chip8.load(path).unwrap();
         while !self.window.should_close() {
             let current_time = Instant::now();
-
 
             self.glfw.poll_events();
 
@@ -87,64 +86,62 @@ impl App {
                 match event {
                     WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
                         self.window.set_should_close(true);
-                    },
-                    WindowEvent::FramebufferSize(width, height) => {
-                        unsafe {
-                            gl::Viewport(0, 0, width, height);
-                        }
-                    },
-                    WindowEvent::Key(key, _, Action::Press, _) => {
-                        match key {
-                            Key::Kp1 => self.chip8.keys[0x1] = true,
-                            Key::Kp2 => self.chip8.keys[0x2] = true,
-                            Key::Kp3 => self.chip8.keys[0x3] = true,
-                            Key::Kp4 => self.chip8.keys[0xC] = true,
-                            Key::Q   => self.chip8.keys[0x4] = true,
-                            Key::W   => self.chip8.keys[0x5] = true,
-                            Key::E   => self.chip8.keys[0x6] = true,
-                            Key::R   => self.chip8.keys[0xD] = true,
-                            Key::A   => self.chip8.keys[0x7] = true,
-                            Key::S   => self.chip8.keys[0x8] = true,
-                            Key::D   => self.chip8.keys[0x9] = true,
-                            Key::F   => self.chip8.keys[0xE] = true,
-                            Key::Z   => self.chip8.keys[0xA] = true,
-                            Key::X   => self.chip8.keys[0x0] = true,
-                            Key::C   => self.chip8.keys[0xB] = true,
-                            Key::V   => self.chip8.keys[0xF] = true,
-                            _ => {}
-                        }
-                    },
-                    WindowEvent::Key(key, _, Action::Release, _) => {
-                        match key {
-                            Key::Kp1 => self.chip8.keys[0x1] = false,
-                            Key::Kp2 => self.chip8.keys[0x2] = false,
-                            Key::Kp3 => self.chip8.keys[0x3] = false,
-                            Key::Kp4 => self.chip8.keys[0xC] = false,
-                            Key::Q   => self.chip8.keys[0x4] = false,
-                            Key::W   => self.chip8.keys[0x5] = false,
-                            Key::E   => self.chip8.keys[0x6] = false,
-                            Key::R   => self.chip8.keys[0xD] = false,
-                            Key::A   => self.chip8.keys[0x7] = false,
-                            Key::S   => self.chip8.keys[0x8] = false,
-                            Key::D   => self.chip8.keys[0x9] = false,
-                            Key::F   => self.chip8.keys[0xE] = false,
-                            Key::Z   => self.chip8.keys[0xA] = false,
-                            Key::X   => self.chip8.keys[0x0] = false,
-                            Key::C   => self.chip8.keys[0xB] = false,
-                            Key::V   => self.chip8.keys[0xF] = false,
-                            _ => {}
-                        }
                     }
+                    WindowEvent::FramebufferSize(width, height) => unsafe {
+                        gl::Viewport(0, 0, width, height);
+                    },
+                    WindowEvent::Key(key, _, Action::Press, _) => match key {
+                        Key::Kp1 => self.chip8.keys[0x1] = true,
+                        Key::Kp2 => self.chip8.keys[0x2] = true,
+                        Key::Kp3 => self.chip8.keys[0x3] = true,
+                        Key::Kp4 => self.chip8.keys[0xC] = true,
+                        Key::Q => self.chip8.keys[0x4] = true,
+                        Key::W => self.chip8.keys[0x5] = true,
+                        Key::E => self.chip8.keys[0x6] = true,
+                        Key::R => self.chip8.keys[0xD] = true,
+                        Key::A => self.chip8.keys[0x7] = true,
+                        Key::S => self.chip8.keys[0x8] = true,
+                        Key::D => self.chip8.keys[0x9] = true,
+                        Key::F => self.chip8.keys[0xE] = true,
+                        Key::Z => self.chip8.keys[0xA] = true,
+                        Key::X => self.chip8.keys[0x0] = true,
+                        Key::C => self.chip8.keys[0xB] = true,
+                        Key::V => self.chip8.keys[0xF] = true,
+                        _ => {}
+                    },
+                    WindowEvent::Key(key, _, Action::Release, _) => match key {
+                        Key::Kp1 => self.chip8.keys[0x1] = false,
+                        Key::Kp2 => self.chip8.keys[0x2] = false,
+                        Key::Kp3 => self.chip8.keys[0x3] = false,
+                        Key::Kp4 => self.chip8.keys[0xC] = false,
+                        Key::Q => self.chip8.keys[0x4] = false,
+                        Key::W => self.chip8.keys[0x5] = false,
+                        Key::E => self.chip8.keys[0x6] = false,
+                        Key::R => self.chip8.keys[0xD] = false,
+                        Key::A => self.chip8.keys[0x7] = false,
+                        Key::S => self.chip8.keys[0x8] = false,
+                        Key::D => self.chip8.keys[0x9] = false,
+                        Key::F => self.chip8.keys[0xE] = false,
+                        Key::Z => self.chip8.keys[0xA] = false,
+                        Key::X => self.chip8.keys[0x0] = false,
+                        Key::C => self.chip8.keys[0xB] = false,
+                        Key::V => self.chip8.keys[0xF] = false,
+                        _ => {}
+                    },
                     _ => {}
                 }
             }
 
-            if current_time.duration_since(self.cpu_timer) > Duration::from_nanos((1.0/CHIP8_FREQ * 10_f32.powi(9)) as u64) {
+            if current_time.duration_since(self.cpu_timer)
+                > Duration::from_nanos((1.0 / CHIP8_FREQ * 10_f32.powi(9)) as u64)
+            {
                 self.cpu_timer = current_time;
                 self.chip8.cycle();
             }
 
-            if current_time.duration_since(self.timer) >= Duration::from_nanos((1.0/TIMER_FREQ * 10_f32.powi(9)) as u64) {
+            if current_time.duration_since(self.timer)
+                >= Duration::from_nanos((1.0 / TIMER_FREQ * 10_f32.powi(9)) as u64)
+            {
                 self.timer = current_time;
                 self.chip8.timer();
                 self.update_texture(0xFF00FF00, 0);
@@ -166,7 +163,6 @@ impl App {
         }
     }
 
-
     fn update_texture(&mut self, f_color: u32, b_color: u32) {
         for i in 0..(chip8::DISPLAY_WIDTH * chip8::DISPLAY_HEIGHT) {
             if self.chip8.display[i] {
@@ -175,23 +171,22 @@ impl App {
                 self.pixels[i] = b_color;
             }
         }
- 
-        unsafe {
-            gl::TexSubImage2D(gl::TEXTURE_2D,
-                              0,
-                              0,
-                              0,
-                              chip8::DISPLAY_WIDTH as GLsizei,
-                              chip8::DISPLAY_HEIGHT as GLsizei,
-                              gl::RGBA,
-                              gl::UNSIGNED_BYTE,
-                              self.pixels.as_ptr() as *const GLvoid,
-                              );
-        }
 
+        unsafe {
+            gl::TexSubImage2D(
+                gl::TEXTURE_2D,
+                0,
+                0,
+                0,
+                chip8::DISPLAY_WIDTH as GLsizei,
+                chip8::DISPLAY_HEIGHT as GLsizei,
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                self.pixels.as_ptr() as *const GLvoid,
+            );
+        }
     }
 }
-
 
 struct GlContext {
     shader_program: GLuint,
@@ -208,26 +203,36 @@ impl GlContext {
             -1.0, -1.0, 0.0, 1.0,
              1.0, -1.0, 1.0, 1.0,
              1.0,  1.0, 1.0, 0.0,
-             
              1.0,  1.0, 1.0, 0.0,
             -1.0,  1.0, 0.0, 0.0,
             -1.0, -1.0, 0.0, 1.0,
         ];
-        
+
         unsafe {
             gl::GenVertexArrays(1, &mut vao);
             gl::GenBuffers(1, &mut vbo);
             gl::BindVertexArray(vao);
 
             gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-            gl::BufferData(gl::ARRAY_BUFFER, (vertices.len() * std::mem::size_of::<f32>()) as GLsizeiptr, vertices.as_ptr() as *const GLvoid, gl::STATIC_DRAW);
+            gl::BufferData(
+                gl::ARRAY_BUFFER,
+                (vertices.len() * std::mem::size_of::<f32>()) as GLsizeiptr,
+                vertices.as_ptr() as *const GLvoid,
+                gl::STATIC_DRAW,
+            );
 
-            gl::VertexAttribPointer(0, 4, gl::FLOAT, gl::FALSE, (4 * std::mem::size_of::<f32>()) as GLsizei, 0 as *const GLvoid);
+            gl::VertexAttribPointer(
+                0,
+                4,
+                gl::FLOAT,
+                gl::FALSE,
+                (4 * std::mem::size_of::<f32>()) as GLsizei,
+                0 as *const GLvoid,
+            );
             gl::EnableVertexAttribArray(0);
-
         }
 
-        GlContext{
+        GlContext {
             shader_program: Self::load_shader_program(),
             texture: Self::create_texture(),
             vao,
@@ -242,34 +247,36 @@ impl GlContext {
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as GLint);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as GLint);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as GLint);
-            gl::TexImage2D(gl::TEXTURE_2D,
-                           0,
-                           gl::RGBA as GLint,
-                           chip8::DISPLAY_WIDTH as GLint,
-                           chip8::DISPLAY_HEIGHT as GLint,
-                           0,
-                           gl::RGBA,
-                           gl::UNSIGNED_BYTE,
-                           std::ptr::null());
+            gl::TexImage2D(
+                gl::TEXTURE_2D,
+                0,
+                gl::RGBA as GLint,
+                chip8::DISPLAY_WIDTH as GLint,
+                chip8::DISPLAY_HEIGHT as GLint,
+                0,
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                std::ptr::null(),
+            );
         }
         texture
     }
 
-    fn compile_shader(source: &str, shader_type: GLenum) ->  GLuint{
+    fn compile_shader(source: &str, shader_type: GLenum) -> GLuint {
         let source = CString::new(source).unwrap();
-        let shader = unsafe{ gl::CreateShader(shader_type)  };
-        
+        let shader = unsafe { gl::CreateShader(shader_type) };
+
         unsafe {
             gl::ShaderSource(shader, 1, &source.as_ptr(), std::ptr::null());
             gl::CompileShader(shader);
         }
-        
+
         let mut success = gl::FALSE as gl::types::GLint;
-        
+
         unsafe {
             gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut success);
         }
-        
+
         if success == gl::FALSE as GLint {
             let mut len = 0 as GLint;
             unsafe {
@@ -294,30 +301,27 @@ impl GlContext {
         shader
     }
 
-
     fn load_shader_program() -> GLuint {
-        let vertex_source =
-            r#"
-            #version 330 core
-            layout (location = 0) in vec4 a_vertex;
-            out vec2 v_tex_coords;
-            void main()
-            {
-                v_tex_coords = a_vertex.zw;
-                gl_Position = vec4(a_vertex.xy, 0.0, 1.0);
-            }
+        let vertex_source = r#"
+#version 330 core
+layout (location = 0) in vec4 a_vertex;
+out vec2 v_tex_coords;
+void main()
+{
+    v_tex_coords = a_vertex.zw;
+    gl_Position = vec4(a_vertex.xy, 0.0, 1.0);
+}
         "#;
 
-        let fragment_source =
-            r#"
-            #version 330 core
-            in vec2 v_tex_coords;
-            out vec4 o_color;
-            uniform sampler2D tex;
-            void main()
-            {
-                o_color = texture(tex, v_tex_coords);
-            }
+        let fragment_source = r#"
+#version 330 core
+in vec2 v_tex_coords;
+out vec4 o_color;
+uniform sampler2D tex;
+void main()
+{
+    o_color = texture(tex, v_tex_coords);
+}
         "#;
 
         let vertex = Self::compile_shader(vertex_source, gl::VERTEX_SHADER);
@@ -348,8 +352,11 @@ impl GlContext {
                     len,
                     std::ptr::null_mut(),
                     info_log_c_string.as_ptr() as *mut GLchar,
-                    );
-                panic!("Shader Program Linking Error:\n{}", info_log_c_string.to_str().unwrap());
+                );
+                panic!(
+                    "Shader Program Linking Error:\n{}",
+                    info_log_c_string.to_str().unwrap()
+                );
             }
         }
         program
@@ -363,5 +370,4 @@ impl GlContext {
             gl::DrawArrays(gl::TRIANGLES, 0, 6);
         }
     }
-
 }
