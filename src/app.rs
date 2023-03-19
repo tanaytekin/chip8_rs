@@ -5,8 +5,8 @@ use std::thread::sleep;
 
 use glfw::{Glfw, Action, Context, Key, WindowEvent, WindowHint, OpenGlProfileHint, WindowMode, Window};
 
-use crate::chip8;
-use crate::chip8::Chip8;
+use chip8::{Chip8};
+
 use crate::gl;
 use crate::gl::types::*;
 
