@@ -21,6 +21,7 @@ const V_COUNT: usize = 0x10;
 const STACK_SIZE: usize = 0x10;
 pub const DISPLAY_WIDTH: usize = 64;
 pub const DISPLAY_HEIGHT: usize = 32;
+pub const DISPLAY_SIZE: usize = DISPLAY_WIDTH * DISPLAY_HEIGHT;
 const KEY_COUNT: usize = 16;
 
 #[allow(non_snake_case)]
