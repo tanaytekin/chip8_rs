@@ -1,8 +1,9 @@
 [workspace]
-
+resolver = "2"
 members = [
     "chip8",
     "chip8_opengl",
+    "chip8_wgpu",
 ]
 
 [profile.dev]
