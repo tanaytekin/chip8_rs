@@ -1,11 +1,15 @@
 use winit::{
     event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
-    window::{Window, WindowBuilder},
+    window::WindowBuilder,
 };
-
+use std::time::{Instant, Duration};
 mod renderer;
 use renderer::Renderer;
+
+
+const CHIP8_FREQ: f32 = 800.0;
+const TIMER_FREQ: f32 = 60.0;
 
 fn main() {
     env_logger::init();
@@ -16,7 +20,11 @@ fn main() {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new().build(&event_loop).unwrap();
     let mut renderer = Renderer::new(&window).unwrap();
-    
+ 
+    let start_time = Instant::now();
+    let mut cpu_timer = start_time;
+    let mut timer = start_time;
+
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent { window_id, event } => {
@@ -43,19 +51,29 @@ fn main() {
             }
         },
         Event::RedrawRequested(window_id) if window_id == window.id() => {
-            log::trace!("redraw");
-            chip8.cycle();
-            chip8.timer();
-            match renderer.render(&chip8.display) {
-                Ok(_) => {}
-                Err(wgpu::SurfaceError::Lost) => renderer.resize(None),
-                Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
-                Err(e) => eprintln!("{:?}", e),
-            }
         },
         Event::MainEventsCleared => {
-            log::trace!("redraw_requested");
-            window.request_redraw();
+            let current_time = Instant::now();
+            if current_time.duration_since(cpu_timer) 
+                > Duration::from_nanos((1.0 / CHIP8_FREQ * 10_f32.powi(9)) as u64) {
+                cpu_timer = current_time;
+                chip8.cycle();
+            }
+
+            if current_time.duration_since(timer)
+                >= Duration::from_nanos((1.0 / TIMER_FREQ * 10_f32.powi(9)) as u64)
+                {
+                log::trace!("FPS: {}", 1.0/(current_time.duration_since(timer).as_secs_f64()));
+                    timer = current_time;
+                    chip8.timer();
+                    match renderer.render(&chip8.display) {
+                        Ok(_) => {}
+                        Err(wgpu::SurfaceError::Lost) => renderer.resize(None),
+                        Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
+                        Err(e) => eprintln!("{:?}", e),
+                    }
+                }
+            std::thread::sleep(Duration::from_nanos(1_300_000));
         },
         _ => {}
     });

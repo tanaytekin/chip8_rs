@@ -8,7 +8,7 @@ pub struct Renderer {
     surface_size: winit::dpi::PhysicalSize<u32>,
     device: wgpu::Device,
     queue: wgpu::Queue,
-    chip8_pixels: [u8; chip8::DISPLAY_SIZE],
+    chip8_pixels: [u32; chip8::DISPLAY_SIZE],
     chip8_texture: wgpu::Texture,
     chip8_texture_size: wgpu::Extent3d,
     chip8_bind_group: wgpu::BindGroup,
@@ -59,7 +59,8 @@ impl Renderer {
 
         surface.configure(&device, &surface_config);
 
-        let chip8_pixels = [0x50; chip8::DISPLAY_WIDTH * chip8::DISPLAY_HEIGHT];
+        let chip8_pixels = [0; chip8::DISPLAY_SIZE];
+        let chip8_pixels_slice = unsafe {std::slice::from_raw_parts(chip8_pixels.as_ptr() as *const u8, chip8_pixels.len() * std::mem::size_of::<u32>())};
         let chip8_texture_size = wgpu::Extent3d {
             width: chip8::DISPLAY_WIDTH as u32,
             height: chip8::DISPLAY_HEIGHT as u32,
@@ -73,7 +74,7 @@ impl Renderer {
                 mip_level_count: 1,
                 sample_count: 1,
                 dimension: wgpu::TextureDimension::D2,
-                format: wgpu::TextureFormat::R8Unorm,
+                format: wgpu::TextureFormat::Rgba8UnormSrgb,
                 usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
                 label: Some("chip8_texture"),
                 view_formats: &[],
@@ -87,10 +88,10 @@ impl Renderer {
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
             },
-            &chip8_pixels,
+            chip8_pixels_slice,
             wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: std::num::NonZeroU32::new(chip8::DISPLAY_WIDTH as u32),
+                bytes_per_row: std::num::NonZeroU32::new((chip8::DISPLAY_WIDTH * std::mem::size_of::<u32>()) as u32),
                 rows_per_image: std::num::NonZeroU32::new(chip8::DISPLAY_HEIGHT as u32),
             },
             chip8_texture_size
@@ -265,22 +266,22 @@ impl Renderer {
                 self.chip8_pixels[i] = 0;
             }
         }
-
-        self.queue.write_texture(
-            wgpu::ImageCopyTexture {
-                texture: &self.chip8_texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::All,
-            },
-            &self.chip8_pixels,
-            wgpu::ImageDataLayout {
-                offset: 0,
-                bytes_per_row: std::num::NonZeroU32::new(chip8::DISPLAY_WIDTH as u32),
-                rows_per_image: std::num::NonZeroU32::new(chip8::DISPLAY_HEIGHT as u32),
-            },
-            self.chip8_texture_size
-        );
+        let chip8_pixels_slice = unsafe {std::slice::from_raw_parts(self.chip8_pixels.as_ptr() as *const u8, self.chip8_pixels.len() * std::mem::size_of::<u32>())};
+         self.queue.write_texture(
+             wgpu::ImageCopyTexture {
+                 texture: &self.chip8_texture,
+                 mip_level: 0,
+                 origin: wgpu::Origin3d::ZERO,
+                 aspect: wgpu::TextureAspect::All,
+             },
+             chip8_pixels_slice,
+             wgpu::ImageDataLayout {
+                 offset: 0,
+                 bytes_per_row: std::num::NonZeroU32::new((chip8::DISPLAY_WIDTH * std::mem::size_of::<u32>()) as u32),
+                 rows_per_image: std::num::NonZeroU32::new(chip8::DISPLAY_HEIGHT as u32),
+             },
+             self.chip8_texture_size
+         );
 
 
         let output = self.surface.get_current_texture()?;
