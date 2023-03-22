@@ -258,12 +258,12 @@ impl Renderer {
         }
     }
 
-    pub fn render(&mut self, chip8_display: &[bool; chip8::DISPLAY_SIZE]) -> Result<(), wgpu::SurfaceError> {
+    pub fn render(&mut self, chip8_display: &[bool; chip8::DISPLAY_SIZE], fg_color: u32, bg_color: u32) -> Result<(), wgpu::SurfaceError> {
         for i in 0..chip8::DISPLAY_SIZE {
             if chip8_display[i] {
-                self.chip8_pixels[i] = 0xFF;
+                self.chip8_pixels[i] = fg_color;
             } else {
-                self.chip8_pixels[i] = 0;
+                self.chip8_pixels[i] = bg_color;
             }
         }
         let chip8_pixels_slice = unsafe {std::slice::from_raw_parts(self.chip8_pixels.as_ptr() as *const u8, self.chip8_pixels.len() * std::mem::size_of::<u32>())};
