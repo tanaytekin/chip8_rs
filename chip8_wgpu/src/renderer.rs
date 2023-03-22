@@ -1,6 +1,6 @@
-use winit::window::Window;
 use anyhow::Result;
 use wgpu::util::DeviceExt;
+use winit::window::Window;
 
 pub struct Renderer {
     surface: wgpu::Surface,
@@ -28,20 +28,26 @@ impl Renderer {
         let surface = unsafe { instance.create_surface(window) }?;
 
         let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::default(),
-                compatible_surface: Some(&surface),
-                force_fallback_adapter: false,
-        })).unwrap();
+            power_preference: wgpu::PowerPreference::default(),
+            compatible_surface: Some(&surface),
+            force_fallback_adapter: false,
+        }))
+        .unwrap();
 
-        let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
-            features: wgpu::Features::default(),
-            limits: wgpu::Limits::default(),
-            label: None,
-        },
-        None)).unwrap();
+        let (device, queue) = pollster::block_on(adapter.request_device(
+            &wgpu::DeviceDescriptor {
+                features: wgpu::Features::default(),
+                limits: wgpu::Limits::default(),
+                label: None,
+            },
+            None,
+        ))
+        .unwrap();
 
         let surface_caps = surface.get_capabilities(&adapter);
-        let surface_format = surface_caps.formats.iter()
+        let surface_format = surface_caps
+            .formats
+            .iter()
             .copied()
             .filter(|f| f.describe().srgb)
             .next()
@@ -60,26 +66,28 @@ impl Renderer {
         surface.configure(&device, &surface_config);
 
         let chip8_pixels = [0; chip8::DISPLAY_SIZE];
-        let chip8_pixels_slice = unsafe {std::slice::from_raw_parts(chip8_pixels.as_ptr() as *const u8, chip8_pixels.len() * std::mem::size_of::<u32>())};
+        let chip8_pixels_slice = unsafe {
+            std::slice::from_raw_parts(
+                chip8_pixels.as_ptr() as *const u8,
+                chip8_pixels.len() * std::mem::size_of::<u32>(),
+            )
+        };
         let chip8_texture_size = wgpu::Extent3d {
             width: chip8::DISPLAY_WIDTH as u32,
             height: chip8::DISPLAY_HEIGHT as u32,
             depth_or_array_layers: 1,
         };
 
-
-        let chip8_texture = device.create_texture(
-            &wgpu::TextureDescriptor {
-                size: chip8_texture_size,
-                mip_level_count: 1,
-                sample_count: 1,
-                dimension: wgpu::TextureDimension::D2,
-                format: wgpu::TextureFormat::Rgba8UnormSrgb,
-                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-                label: Some("chip8_texture"),
-                view_formats: &[],
-            }
-        );
+        let chip8_texture = device.create_texture(&wgpu::TextureDescriptor {
+            size: chip8_texture_size,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            label: Some("chip8_texture"),
+            view_formats: &[],
+        });
 
         queue.write_texture(
             wgpu::ImageCopyTexture {
@@ -91,10 +99,12 @@ impl Renderer {
             chip8_pixels_slice,
             wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: std::num::NonZeroU32::new((chip8::DISPLAY_WIDTH * std::mem::size_of::<u32>()) as u32),
+                bytes_per_row: std::num::NonZeroU32::new(
+                    (chip8::DISPLAY_WIDTH * std::mem::size_of::<u32>()) as u32,
+                ),
                 rows_per_image: std::num::NonZeroU32::new(chip8::DISPLAY_HEIGHT as u32),
             },
-            chip8_texture_size
+            chip8_texture_size,
         );
 
         let chip8_texture_view = chip8_texture.create_view(&wgpu::TextureViewDescriptor::default());
@@ -109,48 +119,47 @@ impl Renderer {
             ..Default::default()
         });
 
-        let chip8_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("chip8_bind_group_layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        multisampled: false,
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    count: None,
-                },
-            ]
-        });
-
-        let chip8_bind_group = device.create_bind_group(
-            &wgpu::BindGroupDescriptor {
-                label: Some("chip8_bind_group"),
-                layout: &chip8_bind_group_layout,
+        let chip8_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("chip8_bind_group_layout"),
                 entries: &[
-                    wgpu::BindGroupEntry {
+                    wgpu::BindGroupLayoutEntry {
                         binding: 0,
-                        resource: wgpu::BindingResource::TextureView(&chip8_texture_view),
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            multisampled: false,
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        },
+                        count: None,
                     },
-                    wgpu::BindGroupEntry {
+                    wgpu::BindGroupLayoutEntry {
                         binding: 1,
-                        resource: wgpu::BindingResource::Sampler(&chip8_sampler),
-                    }
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
                 ],
-            }
-        );
+            });
+
+        let chip8_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("chip8_bind_group"),
+            layout: &chip8_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&chip8_texture_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&chip8_sampler),
+                },
+            ],
+        });
 
         let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
 
-        let render_pipeline_layout = 
+        let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("render_pipeline_layout"),
                 bind_group_layouts: &[&chip8_bind_group_layout],
@@ -164,28 +173,25 @@ impl Renderer {
                 wgpu::VertexAttribute {
                     offset: 0,
                     shader_location: 0,
-                    format: wgpu::VertexFormat::Float32x2
+                    format: wgpu::VertexFormat::Float32x2,
                 },
                 wgpu::VertexAttribute {
                     offset: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,
                     shader_location: 1,
-                    format: wgpu::VertexFormat::Float32x2
+                    format: wgpu::VertexFormat::Float32x2,
                 },
-            ]
+            ],
         };
 
-
-        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor { 
+        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("render_pipeline"),
             layout: Some(&render_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: "vs_main",
-                buffers: &[
-                    vertex_buffer_layout,
-                ],
+                buffers: &[vertex_buffer_layout],
             },
- 
+
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
                 entry_point: "fs_main",
@@ -209,7 +215,7 @@ impl Renderer {
             multisample: wgpu::MultisampleState {
                 count: 1,
                 mask: !0,
-                alpha_to_coverage_enabled: false
+                alpha_to_coverage_enabled: false,
             },
             multiview: None,
         });
@@ -223,14 +229,16 @@ impl Renderer {
             -1.0, -1.0, 0.0, 1.0,
         ];
 
-
-        let vertex_buffer = device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("vertex_buffer"),
-                contents: unsafe {std::slice::from_raw_parts(vertices.as_ptr() as *const u8, vertices.len() * std::mem::size_of::<f32>())},
-                usage: wgpu::BufferUsages::VERTEX,
-            }
-        );
+        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("vertex_buffer"),
+            contents: unsafe {
+                std::slice::from_raw_parts(
+                    vertices.as_ptr() as *const u8,
+                    vertices.len() * std::mem::size_of::<f32>(),
+                )
+            },
+            usage: wgpu::BufferUsages::VERTEX,
+        });
 
         Ok(Self {
             surface,
@@ -258,7 +266,12 @@ impl Renderer {
         }
     }
 
-    pub fn render(&mut self, chip8_display: &[bool; chip8::DISPLAY_SIZE], fg_color: u32, bg_color: u32) -> Result<(), wgpu::SurfaceError> {
+    pub fn render(
+        &mut self,
+        chip8_display: &[bool; chip8::DISPLAY_SIZE],
+        fg_color: u32,
+        bg_color: u32,
+    ) -> Result<(), wgpu::SurfaceError> {
         for i in 0..chip8::DISPLAY_SIZE {
             if chip8_display[i] {
                 self.chip8_pixels[i] = fg_color;
@@ -266,29 +279,39 @@ impl Renderer {
                 self.chip8_pixels[i] = bg_color;
             }
         }
-        let chip8_pixels_slice = unsafe {std::slice::from_raw_parts(self.chip8_pixels.as_ptr() as *const u8, self.chip8_pixels.len() * std::mem::size_of::<u32>())};
-         self.queue.write_texture(
-             wgpu::ImageCopyTexture {
-                 texture: &self.chip8_texture,
-                 mip_level: 0,
-                 origin: wgpu::Origin3d::ZERO,
-                 aspect: wgpu::TextureAspect::All,
-             },
-             chip8_pixels_slice,
-             wgpu::ImageDataLayout {
-                 offset: 0,
-                 bytes_per_row: std::num::NonZeroU32::new((chip8::DISPLAY_WIDTH * std::mem::size_of::<u32>()) as u32),
-                 rows_per_image: std::num::NonZeroU32::new(chip8::DISPLAY_HEIGHT as u32),
-             },
-             self.chip8_texture_size
-         );
-
+        let chip8_pixels_slice = unsafe {
+            std::slice::from_raw_parts(
+                self.chip8_pixels.as_ptr() as *const u8,
+                self.chip8_pixels.len() * std::mem::size_of::<u32>(),
+            )
+        };
+        self.queue.write_texture(
+            wgpu::ImageCopyTexture {
+                texture: &self.chip8_texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            chip8_pixels_slice,
+            wgpu::ImageDataLayout {
+                offset: 0,
+                bytes_per_row: std::num::NonZeroU32::new(
+                    (chip8::DISPLAY_WIDTH * std::mem::size_of::<u32>()) as u32,
+                ),
+                rows_per_image: std::num::NonZeroU32::new(chip8::DISPLAY_HEIGHT as u32),
+            },
+            self.chip8_texture_size,
+        );
 
         let output = self.surface.get_current_texture()?;
-        let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("command_encoder"),
-        });
+        let view = output
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("command_encoder"),
+            });
 
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -319,5 +342,4 @@ impl Renderer {
         output.present();
         Ok(())
     }
-
 }
